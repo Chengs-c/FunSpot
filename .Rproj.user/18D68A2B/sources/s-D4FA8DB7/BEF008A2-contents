@@ -1,0 +1,54 @@
+dim(U)
+rownames(U)=colnames(geno)
+colnames(U)=c(1:150)
+se_pca=Seurat::CreateSeuratObject(t(U))
+Seurat::Idents(se_pca) <- se_quartz$nnet2
+se_pca@assays$SCT=se_pca@assays$RNA
+marker_genes_pca <- Seurat::FindAllMarkers(
+  object = se_pca,
+  assay = "SCT",
+  slot = "data",
+  min.pct = 0,
+  only.pos = TRUE,
+  logfc.threshold = 0
+)
+
+num_cell_type=length(unique(cell.type.factor))
+p_Value_matrix=matrix(rep(0,nfpca*num_cell_type),nrow = num_cell_type)
+rownames(p_Value_matrix)=unique(cell.type.factor)
+colnames(p_Value_matrix)=c(1:150)
+dim(p_Value_matrix)
+cell.type.factor.all=unique(cell.type.factor)
+
+p_value_weight=rep(0,nfpca)
+
+num_every_cell_type=table(cell.type.factor)
+for (i in 1:ncol(p_Value_matrix)) {
+  for (j in 1:nrow(p_Value_matrix)) {
+    a1=U[which(cell.type.factor==cell.type.factor.all[j]),i]
+    a2=U[which(cell.type.factor!=cell.type.factor.all[j]),i]
+    a3=wilcox.test(a1,a2)$p.value
+    p_Value_matrix[j,i]=a3
+    if(a3<0.2){
+      p_value_weight[i]=p_value_weight[i]+as.numeric(num_every_cell_type[cell.type.factor.all[j]])
+    }
+  }
+}
+p_value_vector=apply(p_Value_matrix,2,sum)
+p_value_vector_rank=rank(p_value_vector)
+p_value_vector_rank=1/p_value_vector_rank
+p_value_vector_rank=(nfpca+1)-p_value_vector_rank
+
+p_value_vector_rank=rank(p_value_weight)
+
+p_value_vector_weight=1/p_value_vector
+
+
+fpca_variance=apply(U, 2, var)
+W=1/fpca_variance
+W=c(150:1)
+
+
+
+
+
